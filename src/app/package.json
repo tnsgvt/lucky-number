@@ -7,8 +7,10 @@
     "build": "vue-cli-service build"
   },
   "dependencies": {
+    "express": "^4.17.1",
     "near-api-js": "^0.43.1",
     "regenerator-runtime": "^0.13.9",
+    "swig": "^1.4.2",
     "vue": "^2.6.11"
   },
   "devDependencies": {

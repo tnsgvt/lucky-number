@@ -11,9 +11,10 @@ export class Prediction {
     const rng = new RNG<u32>(0, 9);
 
     this.luckyNumber = rng.next(); // the number that machine thought
-    this.luckyNumber = 5; // for test
+    this.luckyNumber = 5; // for Demo
 
     this.betAmount = Context.attachedDeposit; // bet amount of player
+
     this.player = Context.sender;
     this.predictionList = new PersistentSet<u32>('pl');
   }
@@ -31,14 +32,13 @@ export function start(): u32 {
 }
 
 export function predict(gameId: u32, num: u32): u32 {
-  // retrieve prediction
   const prediction = gameMap.get(gameId, null);
 
   if (prediction) {
     if (prediction.luckyNumber == num) {
       // WON, transfer prize money
       const beneficiary = ContractPromiseBatch.create(prediction.player);
-      beneficiary.transfer(u128.mul(prediction.betAmount, u128.from(2)));
+      beneficiary.transfer(u128.mul(prediction.betAmount, u128.from(5)));
 
       gameMap.delete(gameId);
       return 9;

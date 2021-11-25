@@ -1,6 +1,7 @@
 <template>
   <div id="app">
-    <h1>LUCKY NUMBER GAME</h1>
+    <h1>LUCKY NUMBER</h1>
+    <h3 v-if="gameId">Game ID: {{gameId}}</h3>
 
     <div style="display: flex; justify-content: space-between;margin-top:35px">
       <div class="circle" :class="[prediction[0] ? 'sel' : '']" @click="sel(0)">0</div>
@@ -16,18 +17,15 @@
     </div>
     <div v-if="isLoading" class="lds-dual-ring"></div>
     <h2 v-if="msg" class="err">{{msg}}</h2>
-    <br><br>
-    <div v-if="!gameId">
-      Bet Money: <input ref="betAmount" v-model.number="betAmount" size="10">
+    <div v-if="!gameId" class="bet-input">
+      Bet Money <input ref="betAmount" v-model="betAmount" size="10" disabled>
       <button @click="startGame">START</button>
-    </div>
-    <div v-else>
-      <h3>Game ID: {{gameId}}</h3>
     </div>
   </div>
 </template>
 
 <script>
+import "regenerator-runtime/runtime";
 import * as nearAPI from 'near-api-js';
 import getConfig from './nearConfig';
 
@@ -41,7 +39,7 @@ const MSG_CODE = {
   3: 'Greater than the Lucky Number. Try again',
   4: 'Lower than the Lucky Number. Try again',
 
-  9: 'CONGRATULATION !! YOU WON'
+  9: 'Congratulation !!! YOU WON'
 };
 
 export default {
@@ -50,7 +48,7 @@ export default {
   data() {
     return {
       gameId: null,
-      betAmount: 0,
+      betAmount: '0.01',
       prediction: {},
       msg: null,
       transactionHashes: null,
@@ -62,7 +60,11 @@ export default {
     await this.nearConnect();
 
     this.transactionHashes = new URL(window.location.href).searchParams.get('transactionHashes');
+
     if (this.transactionHashes) { // already deposit
+      // const provider = new nearAPI.providers.JsonRpcProvider(nearConfig.nodeUrl);
+      // const result = await provider.txStatus(this.transactionHashes, walletConnection.getAccountId());
+      // console.log("Result: ", result);
       await this.loadGame();
     }
   },
@@ -117,7 +119,7 @@ export default {
 
       await account.sendMoney(
         nearConfig.contractName, // receiver account
-        this.betAmount // amount in yoctoNEAR
+        nearAPI.utils.format.parseNearAmount(this.betAmount) // amount in yoctoNEAR
       );
     },
 
@@ -129,12 +131,13 @@ export default {
 
     async predict(num) {
       this.msg = null;
+      if (this.gameId == null) {
+        return this.startGame();
+      }
 
       let result;
 
-      if (this.gameId == null) {
-        result = 0;
-      } else if (Object.keys(this.prediction).length >= 3) {
+      if (Object.keys(this.prediction).length >= 3) {
         result = 1;
         this.resetGame();
       } else if (this.prediction[num]) {
@@ -150,7 +153,10 @@ export default {
           } else if (result == 2) {
             return; // do nothing
           } else if (result == 1 || result == 9) {
-            // this.resetGame();
+            this.$set(this.prediction, num, true);
+            setTimeout(() => {
+              this.resetGame();
+            }, 5000);
           }
         } catch(err) {
           this.msg = err;
@@ -164,20 +170,19 @@ export default {
 
     resetGame() {
       // window.location.href = '/';
-      this.gameId = null;
       this.transactionHashes = null;
-      // this.msg = null;
-      this.betAmount = 0;
+      this.gameId = null;
+      this.msg = null;
+      this.prediction = {};
     },
 
     login() {
-      walletConnection.requestSignIn(nearConfig.contractName, 'Number Predictaion');
+      walletConnection.requestSignIn(nearConfig.contractName, 'Lucky Number');
     },
 
     signOut() {
       walletConnection.signOut();
     },
-
   }
 }
 </script>
@@ -190,6 +195,27 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+}
+
+.bet-input {
+  margin-top: 45px;
+  font-size: 35px;
+}
+.bet-input input {
+  font-size: 25px;
+  padding: 8px;
+  height: 35px;
+  border-radius: 10px;
+  border: 4px solid gray;
+  outline: none;
+}
+.bet-input button {
+  padding: 10px;
+  font-size: 25px;
+  margin-left: 25px;
+  border-radius: 10px;
+  border: 4px solid gray;
+  cursor: pointer;
 }
 
 .circle {
